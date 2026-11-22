@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>NEON MEYVE: ZİRVE</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg-dark: #070913;
+      --panel-bg: rgba(15, 20, 40, 0.88);
+      --border-neon: #ff2e93;
+      --border-cyan: #00f0ff;
+      --text-main: #f4f7ff;
+      --text-muted: #93a1c6;
+      --gold: #ffd166;
+      --green: #00e676;
+      --red: #ff3b5c;
+      --blue: #2979ff;
+      --yellow: #ffea00;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at 50% 20%, #141b3a 0%, #070913 75%);
+      color: var(--text-main);
+      font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+      overflow-x: hidden;
+    }
+    button, input { font-family: inherit; }
+
+    /* AUTH SCREEN */
+    #auth-screen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .auth-card {
+      width: 100%; max-width: 420px; background: var(--panel-bg);
+      border: 2px solid var(--border-cyan);
+      box-shadow: 0 0 28px rgba(0, 240, 255, 0.25), inset 0 0 18px rgba(255, 46, 147, 0.15);
+      border-radius: 20px; padding: 24px 20px;
+    }
+    .logo-title {
+      text-align: center; font-size: 26px; font-weight: 900; letter-spacing: 1px;
+      background: linear-gradient(90deg, #ff2e93, #ffd166, #00f0ff);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin: 0 0 4px;
+    }
+    .logo-sub {
+      text-align: center; font-size: 12px; color: var(--text-muted); margin-bottom: 18px;
+    }
+    .auth-tabs {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px;
+      background: rgba(7, 9, 19, 0.7); padding: 4px; border-radius: 12px;
+    }
+    .auth-tab {
+      border: none; padding: 10px; border-radius: 9px; font-weight: 700; font-size: 14px;
+      background: transparent; color: var(--text-muted); cursor: pointer;
+    }
+    .auth-tab.active {
+      background: linear-gradient(135deg, #ff2e93, #7b2cbf); color: #fff;
+      box-shadow: 0 0 12px rgba(255, 46, 147, 0.45);
+    }
+    .field { margin-bottom: 12px; }
+    .field label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+    .field input {
+      width: 100%; padding: 11px 12px; border-radius: 10px;
+      border: 1px solid rgba(0, 240, 255, 0.35); background: rgba(7, 9, 19, 0.9);
+      color: #fff; font-size: 14px; outline: none; user-select: text;
+    }
+    .field input:focus { border-color: var(--border-cyan); box-shadow: 0 0 10px rgba(0,240,255,0.3); }
+    .btn-primary {
+      width: 100%; padding: 12px; border: none; border-radius: 12px;
+      background: linear-gradient(90deg, #00f0ff, #2979ff); color: #050814;
+      font-weight: 900; font-size: 15px; cursor: pointer; margin-top: 4px;
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.4);
+    }
+    .btn-demo {
+      width: 100%; padding: 10px; border: 1px solid rgba(255, 209, 102, 0.5); border-radius: 12px;
+      background: rgba(255, 209, 102, 0.12); color: var(--gold);
+      font-weight: 700; font-size: 13px; cursor: pointer; margin-top: 10px;
+    }
+    .auth-msg {
+      margin-top: 10px; font-size: 13px; text-align: center; min-height: 18px; color: #ff6b8b;
+    }
+    .auth-msg.ok { color: #00e676; }
+
+    /* MAIN APP */
+    #game-app {
+      display: none; flex-direction: column; min-height: 100vh; max-width: 960px;
+      margin: 0 auto; padding: 10px 12px 24px; gap: 10px;
+    }
+    .top-bar {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+      gap: 8px; background: var(--panel-bg); border: 1px solid rgba(0, 240, 255, 0.3);
+      border-radius: 14px; padding: 8px 12px;
+    }
+    .user-pill { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+    .badge-live {
+      font-size: 10px; padding: 2px 7px; border-radius: 999px;
+      background: rgba(0, 230, 118, 0.18); color: #00e676; border: 1px solid #00e676;
+    }
+    .badge-vip {
+      font-size: 10px; padding: 2px 7px; border-radius: 999px;
+      background: rgba(255, 209, 102, 0.2); color: var(--gold); border: 1px solid var(--gold);
+    }
+    .lives-box {
+      display: flex; align-items: center; gap: 6px; background: rgba(7, 9, 19, 0.8);
+      padding: 5px 10px; border-radius: 10px; border: 1px solid rgba(255, 46, 147, 0.45);
+      font-size: 13px; font-weight: 800;
+    }
+    .top-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip-btn {
+      border: 1px solid rgba(0, 240, 255, 0.4); background: rgba(16, 24, 52, 0.9);
+      color: #fff; padding: 6px 10px; border-radius: 10px; font-size: 12px; font-weight: 700;
+      cursor: pointer;
+    }
+    .chip-btn.pink { border-color: #ff2e93; background: rgba(255, 46, 147, 0.18); }
+    .chip-btn.gold { border-color: var(--gold); color: var(--gold); }
+
+    /* SCOREBOARD */
+    .hud-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    }
+    .hud-card {
+      background: var(--panel-bg); border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px; padding: 8px 6px; text-align: center;
+    }
+    .hud-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .hud-val { font-size: 17px; font-weight: 900; margin-top: 2px; color: #fff; }
+    .hud-val.cyan { color: var(--border-cyan); }
+    .hud-val.gold { color: var(--gold); }
+    .hud-val.pink { color: #ff69b4; }
+
+    /* CHALLENGE BANNER */
+    #challenge-banner {
+      display: none; align-items: center; justify-content: space-between; gap: 10px;
+      background: linear-gradient(90deg, rgba(255,46,147,0.25), rgba(41,121,255,0.25));
+      border: 1px solid #ff2e93; border-radius: 12px; padding: 8px 12px; font-size: 13px; font-weight: 700;
+    }
+
+    /* BOARD AREA */
+    .play-wrapper {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+    }
+    .board-frame {
+      position: relative;
+      width: min(92vw, 440px);
+      aspect-ratio: 1 / 1;
+      padding: 8px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(255,46,147,0.35), rgba(0,240,255,0.35));
+      box-shadow: 0 0 26px rgba(255, 46, 147, 0.35), 0 0 26px rgba(0, 240, 255, 0.25);
+    }
+    #board {
+      width: 100%; height: 100%;
+      background: #080c1d;
+      border-radius: 12px;
+      padding: 6px;
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      grid-template-rows: repeat(8, minmax(0, 1fr));
+      gap: 5px;
+    }
+    .cell {
+      width: 100%; height: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: clamp(18px, 4.8vw, 28px);
+      font-weight: 900;
+      cursor: pointer;
+      position: relative;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      border: 2px solid rgba(255,255,255,0.22);
+    }
+    .cell.selected {
+      transform: scale(1.08);
+      outline: 3px solid #ffffff;
+      z-index: 3;
+    }
+    /* Solid vivid colors */
+    .c-green { background: #00c853; box-shadow: inset 0 2px 6px rgba(255,255,255,0.35), 0 0 8px rgba(0,200,83,0.45); }
+    .c-blue  { background: #2979ff; box-shadow: inset 0 2px 6px rgba(255,255,255,0.35), 0 0 8px rgba(41,121,255,0.45); }
+    .c-red   { background: #ff1744; box-shadow: inset 0 2px 6px rgba(255,255,255,0.35), 0 0 8px rgba(255,23,68,0.45); }
+    .c-yellow{ background: #ffd600; box-shadow: inset 0 2px 6px rgba(255,255,255,0.45), 0 0 8px rgba(255,214,0,0.45); }
+
+    .cell.fruit {
+      border: 2px solid #fff;
+      box-shadow: 0 0 14px rgba(255, 255, 255, 0.7);
+    }
+    .cell.ice::after {
+      content: "❄️";
+      position: absolute; inset: 0;
+      background: rgba(180, 240, 255, 0.45);
+      border: 2px solid #9beeff;
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+
+    #callout {
+      position: absolute; inset: 0; pointer-events: none;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 34px; font-weight: 900; letter-spacing: 2px;
+      color: #fff;
+      text-shadow: 0 0 14px #ff2e93, 0 0 28px #00f0ff;
+      opacity: 0; transform: scale(0.7);
+      transition: opacity 0.22s ease, transform 0.22s ease;
+      z-index: 10;
+    }
+    #callout.show { opacity: 1; transform: scale(1.06); }
+
+    .legend-bar {
+      display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+      font-size: 11px; color: var(--text-muted);
+      background: var(--panel-bg); padding: 7px 12px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* MODALS */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(4, 6, 15, 0.82);
+      display: none; align-items: center; justify-content: center;
+      padding: 16px; z-index: 50;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal-card {
+      width: 100%; max-width: 440px; max-height: 85vh; overflow-y: auto;
+      background: #0d1328; border: 2px solid var(--border-cyan);
+      border-radius: 18px; padding: 18px;
+      box-shadow: 0 0 30px rgba(0, 240, 255, 0.28);
+    }
+    .modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .modal-head h3 { margin: 0; font-size: 18px; }
+    .close-x {
+      border: none; background: rgba(255,255,255,0.1); color: #fff;
+      width: 30px; height: 30px; border-radius: 8px; font-weight: 900; cursor: pointer;
+    }
+    .list-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 9px 10px; border-radius: 10px;
+      background: rgba(255,255,255,0.05); margin-bottom: 7px; font-size: 13px;
+    }
+    .toast {
+      position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+      background: #121b38; border: 1px solid var(--border-cyan); color: #fff;
+      padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 700;
+      z-index: 90; display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- AUTH SCREEN -->
+  <div id="auth-screen">
+    <div class="auth-card">
+      <h1 class="logo-title">NEON MEYVE: ZİRVE</h1>
+      <div class="logo-sub">50 Etaplı Canlı Meyve Birleştirme Arenası</div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Giriş Yap</button>
+        <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Kayıt Ol</button>
+      </div>
+
+      <div class="field" id="field-username" style="display:none;">
+        <label>Kullanıcı Adı (Benzersiz)</label>
+        <input type="text" id="auth-username" placeholder="Örn: AyhanPro" autocomplete="username" />
+      </div>
+      <div class="field">
+        <label>E-posta Adresi</label>
+        <input type="email" id="auth-email" placeholder="ornek@mail.com" autocomplete="email" />
+      </div>
+      <div class="field">
+        <label>Şifre (En az 6 karakter)</label>
+        <input type="password" id="auth-password" placeholder="••••••" autocomplete="current-password" />
+      </div>
+
+      <button class="btn-primary" id="auth-submit-btn" onclick="submitAuth()">Giriş Yap</button>
+      <button class="btn-demo" onclick="startDemo()">🎮 Demo Olarak Hemen Oyna</button>
+      <div class="auth-msg" id="auth-msg"></div>
+    </div>
+  </div>
+
+  <!-- MAIN GAME APP -->
+  <div id="game-app">
+    <div class="top-bar">
+      <div class="user-pill">
+        <span id="ui-username">Oyuncu</span>
+        <span class="badge-live" id="ui-conn-badge">CANLI</span>
+        <span class="badge-vip" id="ui-vip-badge" style="display:none;">VIP REKLAMSIZ</span>
+      </div>
+
+      <div class="lives-box">
+        <span id="ui-hearts">❤️❤️❤️❤️❤️</span>
+        <span id="ui-life-timer" style="color:#00f0ff;font-size:12px;">TAM</span>
+      </div>
+
+      <div class="top-actions">
+        <button class="chip-btn" onclick="openModal('modal-rank')">🏆 Sıralama & Meydan Oku</button>
+        <button class="chip-btn pink" onclick="openModal('modal-invite')">🎁 Davet (+2)</button>
+        <button class="chip-btn" onclick="openAdModal()">🎬 Reklam (+1)</button>
+        <button class="chip-btn gold" onclick="openModal('modal-shop')">💎 Mağaza</button>
+        <button class="chip-btn" onclick="logoutUser()">Çıkış</button>
+      </div>
+    </div>
+
+    <div class="hud-grid">
+      <div class="hud-card">
+        <div class="hud-label">Etap (1-50)</div>
+        <div class="hud-val cyan" id="ui-stage">1 / 50</div>
+      </div>
+      <div class="hud-card">
+        <div class="hud-label">Puan</div>
+        <div class="hud-val" id="ui-score">0</div>
+      </div>
+      <div class="hud-card">
+        <div class="hud-label">Hedef Puan</div>
+        <div class="hud-val gold" id="ui-target">3.000</div>
+      </div>
+      <div class="hud-card">
+        <div class="hud-label">Kalan Hamle</div>
+        <div class="hud-val pink" id="ui-moves">28</div>
+      </div>
+    </div>
+
+    <div id="challenge-banner">
+      <span>⚔️ Düello: <strong id="ch-opponent-name">Rakip</strong> (<span id="ch-opp-score">0</span> puan)</span>
+      <span>⏱️ <strong id="ch-timer">60</strong> sn</span>
+    </div>
+
+    <div class="play-wrapper">
+      <div class="board-frame">
+        <div id="board"></div>
+        <div id="callout">EXCELLENT!</div>
+      </div>
+
+      <div class="legend-bar">
+        <span>🟩 3 Yeşil = 🍉 (+10)</span>
+        <span>🟦 3 Mavi = 🫐 (+10)</span>
+        <span>🟥 3 Kırmızı = 🍓 (+10)</span>
+        <span>🟨 3 Sarı = 🍍 (+10)</span>
+        <span>🍉+🍉 = TÜM TAHTAYI YIKAR (+100)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: LEADERBOARD & CHALLENGE -->
+  <div class="modal-backdrop" id="modal-rank">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>🏆 Canlı Sıralama & Meydan Oku</h3>
+        <button class="close-x" onclick="closeModal('modal-rank')">✕</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:12px;">
+        <input id="friend-search-input" placeholder="Arkadaş kullanıcı adı ekle..." style="flex:1;padding:9px;border-radius:9px;border:1px solid #00f0ff;background:#070913;color:#fff;user-select:text;" />
+        <button class="chip-btn" onclick="addFriend()">Ekle</button>
+      </div>
+      <div id="leaderboard-list"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: INVITE -->
+  <div class="modal-backdrop" id="modal-invite">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>🎁 Davet Et & +2 Hak Kazan</h3>
+        <button class="close-x" onclick="closeModal('modal-invite')">✕</button>
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);margin-top:0;">Davet kodunu arkadaşınla paylaş veya arkadaşının kodunu girerek ikiniz de <strong>+2 Hak</strong> kazanın.</p>
+      <div class="list-row">
+        <span>Senin Kodun: <strong id="my-invite-code" style="color:#00f0ff;">MEYVE-DEMO</strong></span>
+        <button class="chip-btn" onclick="copyInviteCode()">Kopyala</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:10px;">
+        <input id="invite-code-input" placeholder="Arkadaş davet kodu (MEYVE-...)" style="flex:1;padding:9px;border-radius:9px;border:1px solid #ff2e93;background:#070913;color:#fff;user-select:text;" />
+        <button class="chip-btn pink" onclick="redeemInviteCode()">Doğrula</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: REWARDED AD (5 SEC) -->
+  <div class="modal-backdrop" id="modal-ad">
+    <div class="modal-card" style="text-align:center;">
+      <div class="modal-head">
+        <h3>🎬 Ödüllü Reklam (+1 Hak)</h3>
+        <button class="close-x" onclick="closeModal('modal-ad')">✕</button>
+      </div>
+      <p id="ad-status-text" style="font-size:14px;">Reklam izleniyor... Ödül için <strong>5</strong> saniye bekleyin.</p>
+      <button class="btn-primary" id="ad-claim-btn" disabled onclick="claimAdReward()">Lütfen Bekleyin (5s)</button>
+    </div>
+  </div>
+
+  <!-- MODAL: SHOP -->
+  <div class="modal-backdrop" id="modal-shop">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>💎 Mağaza (Ek Hak & VIP)</h3>
+        <button class="close-x" onclick="closeModal('modal-shop')">✕</button>
+      </div>
+      <div class="list-row">
+        <div>
+          <strong>+5 Anında Tam Hak</strong><br/>
+          <span style="font-size:11px;color:var(--text-muted);">Haklarını hemen fulle</span>
+        </div>
+        <button class="chip-btn" onclick="buyProduct('lives_5')">₺29,99</button>
+      </div>
+      <div class="list-row">
+        <div>
+          <strong style="color:var(--gold);">👑 Reklamsız VIP Üyelik (Aylık)</strong><br/>
+          <span style="font-size:11px;color:var(--text-muted);">Beklemesiz +1 hak & reklamsız oyun</span>
+        </div>
+        <button class="chip-btn gold" onclick="buyProduct('vip_monthly')">₺89,99</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // SUPABASE CONFIGURATION
+    const SUPABASE_URL = "https://ekozojmpwjsnmoqiijan.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_MOIdXHliaUB8X_pImaavKQ_ELon8xjp";
+    const sb = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+    // GAME CONSTANTS
+    const COLORS = ["green", "blue", "red", "yellow"];
+    const FRUITS = {
+      green: "🍉",
+      blue: "🫐",
+      red: "🍓",
+      yellow: "🍍"
+    };
+    const MAX_STAGE = 50;
+    const MAX_LIVES = 5;
+    const REGEN_SECONDS = 5;
+
+    // STATE
+    let authMode = "login";
+    let currentUser = null; // { id, username, email, invite_code, lives, best_score, current_stage, is_vip, isDemo }
+    let grid = [];
+    let selectedCell = null;
+    let isBusy = false;
+    let score = 0;
+    let stage = 1;
+    let targetScore = 3000;
+    let movesLeft = 28;
+    let lives = 5;
+    let regenCountdown = 0;
+    let lifeInterval = null;
+
+    // CHALLENGE STATE
+    let activeChallenge = null;
+    let challengeTimerInt = null;
+
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg;
+      el.style.display = "block";
+      clearTimeout(el._t);
+      el._t = setTimeout(() => { el.style.display = "none"; }, 2800);
+    }
+
+    function showCallout(text) {
+      const el = document.getElementById("callout");
+      el.textContent = text;
+      el.classList.add("show");
+      clearTimeout(el._t);
+      el._t = setTimeout(() => el.classList.remove("show"), 950);
+    }
+
+    function switchAuthTab(mode) {
+      authMode = mode;
+      document.getElementById("tab-login").classList.toggle("active", mode === "login");
+      document.getElementById("tab-register").classList.toggle("active", mode === "register");
+      document.getElementById("field-username").style.display = mode === "register" ? "block" : "none";
+      document.getElementById("auth-submit-btn").textContent = mode === "register" ? "Kayıt Ol ve Başla" : "Giriş Yap";
+      document.getElementById("auth-msg").textContent = "";
+    }
+
+    async function submitAuth() {
+      const email = document.getElementById("auth-email").value.trim();
+      const password = document.getElementById("auth-password").value;
+      const username = document.getElementById("auth-username").value.trim();
+      const msgEl = document.getElementById("auth-msg");
+      msgEl.className = "auth-msg";
+
+      if (!email || !password) {
+        msgEl.textContent = "Lütfen e-posta ve şifrenizi girin.";
+        return;
+      }
+      if (password.length < 6) {
+        msgEl.textContent = "Şifre en az 6 karakter olmalıdır.";
+        return;
+      }
+      if (!sb) {
+        msgEl.textContent = "Sunucu bağlantısı yüklenemedi, Demo ile devam edebilirsiniz.";
+        return;
+      }
+
+      if (authMode === "register") {
+        if (username.length < 3) {
+          msgEl.textContent = "Kullanıcı adı en az 3 karakter olmalıdır.";
+          return;
+        }
+        msgEl.textContent = "Kayıt kontrol ediliyor...";
+
+        // Check unique username first
+        const { data: existing } = await sb
+          .from("profiles")
+          .select("id")
+          .ilike("username", username)
+          .maybeSingle();
+
+        if (existing) {
+          msgEl.textContent = "Bu kullanıcı adı zaten alınmış. Başka bir ad seçin.";
+          return;
+        }
+
+        const { data, error } = await sb.auth.signUp({
+          email,
+          password,
+          options: { data: { username } }
+        });
+
+        if (error) {
+          msgEl.textContent = error.message;
+          return;
+        }
+        if (!data.session) {
+          msgEl.className = "auth-msg ok";
+          msgEl.textContent = "Kayıt oluşturuldu! E-postanızı onaylayın veya Giriş Yap sekmesini kullanın.";
+          return;
+        }
+        await loadSupabaseProfile(data.user);
+      } else {
+        msgEl.textContent = "Giriş yapılıyor...";
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) {
+          msgEl.textContent = "E-posta veya şifre hatalı.";
+          return;
+        }
+        await loadSupabaseProfile(data.user);
+      }
+    }
+
+    async function loadSupabaseProfile(user) {
+      let { data: prof } = await sb.rpc("sync_lives_server", { p_user_id: user.id });
+      if (!prof) {
+        const res = await sb.from("profiles").select("*").eq("id", user.id).single();
+        prof = res.data;
+      }
+      currentUser = {
+        id: user.id,
+        username: prof?.username || user.email.split("@")[0],
+        email: user.email,
+        invite_code: prof?.invite_code || "MEYVE-CANLI",
+        lives: prof?.lives ?? 5,
+        best_score: prof?.best_score ?? 0,
+        current_stage: prof?.current_stage ?? 1,
+        is_vip: prof?.is_vip ?? false,
+        isDemo: false
+      };
+      enterGame();
+    }
+
+    function startDemo() {
+      currentUser = {
+        id: "demo-user",
+        username: "DemoOyuncu",
+        email: "demo@neonmeyve.app",
+        invite_code: "MEYVE-7429",
+        lives: 5,
+        best_score: 0,
+        current_stage: 1,
+        is_vip: false,
+        isDemo: true
+      };
+      enterGame();
+    }
+
+    function enterGame() {
+      document.getElementById("auth-screen").style.display = "none";
+      document.getElementById("game-app").style.display = "flex";
+      document.getElementById("ui-username").textContent = currentUser.username;
+      document.getElementById("ui-conn-badge").textContent = currentUser.isDemo ? "DEMO MOD" : "CANLI SUNUCU";
+      document.getElementById("ui-vip-badge").style.display = currentUser.is_vip ? "inline-block" : "none";
+      document.getElementById("my-invite-code").textContent = currentUser.invite_code;
+
+      lives = currentUser.lives;
+      stage = Math.min(MAX_STAGE, Math.max(1, currentUser.current_stage || 1));
+      startLifeLoop();
+      setupStage(stage);
+      refreshLeaderboard();
+    }
+
+    async function logoutUser() {
+      if (sb && !currentUser?.isDemo) await sb.auth.signOut();
+      clearInterval(lifeInterval);
+      currentUser = null;
+      document.getElementById("game-app").style.display = "none";
+      document.getElementById("auth-screen").style.display = "flex";
+    }
+
+    // 5-SECOND LIFE REGEN LOOP
+    function startLifeLoop() {
+      clearInterval(lifeInterval);
+      regenCountdown = lives < MAX_LIVES ? REGEN_SECONDS : 0;
+      updateHeartsUI();
+      lifeInterval = setInterval(async () => {
+        if (lives < MAX_LIVES) {
+          regenCountdown--;
+          if (regenCountdown <= 0) {
+            lives = Math.min(MAX_LIVES, lives + 1);
+            regenCountdown = lives < MAX_LIVES ? REGEN_SECONDS : 0;
+            if (sb && currentUser && !currentUser.isDemo) {
+              const { data } = await sb.rpc("sync_lives_server", { p_user_id: currentUser.id });
+              if (data && typeof data.lives === "number") lives = data.lives;
+            }
+          }
+        } else {
+          regenCountdown = 0;
+        }
+        updateHeartsUI();
+      }, 1000);
+    }
+
+    function updateHeartsUI() {
+      const full = "❤️".repeat(lives);
+      const empty = "🖤".repeat(Math.max(0, MAX_LIVES - lives));
+      document.getElementById("ui-hearts").textContent = full + empty;
+      document.getElementById("ui-life-timer").textContent =
+        lives >= MAX_LIVES ? "TAM" : `+1 hak: ${regenCountdown}s`;
+    }
+
+    async function consumeOneLife() {
+      if (lives <= 0) return false;
+      lives--;
+      if (regenCountdown === 0) regenCountdown = REGEN_SECONDS;
+      updateHeartsUI();
+      if (sb && currentUser && !currentUser.isDemo) {
+        const { data } = await sb.rpc("consume_life_server", { p_user_id: currentUser.id });
+        if (data && data.ok === false) {
+          lives = 0;
+          updateHeartsUI();
+          return false;
+        }
+      }
+      return true;
+    }
+
+    // STAGE CONFIG (50 STAGES, 10x TARGET SCORE)
+    function getStageConfig(st) {
+      const target = Math.round((2500 + st * 1500 + Math.pow(st, 2) * 180) / 100) * 100;
+      const moves = Math.max(16, 30 - Math.floor(st / 5));
+      const iceCount = st < 3 ? 0 : Math.min(18, Math.floor(st / 2.5));
+      return { target, moves, iceCount };
+    }
+
+    function setupStage(st) {
+      stage = st;
+      const cfg = getStageConfig(st);
+      targetScore = cfg.target;
+      movesLeft = cfg.moves;
+      score = 0;
+      selectedCell = null;
+
+      // Build 8x8 without initial 3-matches
+      grid = Array.from({ length: 8 }, () => Array(8).fill(null));
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          let color;
+          do {
+            color = COLORS[Math.floor(Math.random() * COLORS.length)];
+          } while (
+            (c >= 2 && grid[r][c - 1]?.color === color && grid[r][c - 2]?.color === color) ||
+            (r >= 2 && grid[r - 1][c]?.color === color && grid[r - 2][c]?.color === color)
+          );
+          grid[r][c] = { color, fruit: false, ice: false };
+        }
+      }
+
+      // Add ice obstacles in higher stages
+      let placedIce = 0;
+      while (placedIce < cfg.iceCount) {
+        const r = Math.floor(Math.random() * 8);
+        const c = Math.floor(Math.random() * 8);
+        if (!grid[r][c].ice) {
+          grid[r][c].ice = true;
+          placedIce++;
+        }
+      }
+
+      updateHUD();
+      renderBoard();
+    }
+
+    function updateHUD() {
+      document.getElementById("ui-stage").textContent = `${stage} / ${MAX_STAGE}`;
+      document.getElementById("ui-score").textContent = score.toLocaleString("tr-TR");
+      document.getElementById("ui-target").textContent = targetScore.toLocaleString("tr-TR");
+      document.getElementById("ui-moves").textContent = movesLeft;
+    }
+
+    function renderBoard() {
+      const boardEl = document.getElementById("board");
+      boardEl.innerHTML = "";
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const item = grid[r][c];
+          const div = document.createElement("div");
+          div.className = `cell c-${item.color}`;
+          if (item.fruit) div.classList.add("fruit");
+          if (item.ice) div.classList.add("ice");
+          if (selectedCell && selectedCell.r === r && selectedCell.c === c) {
+            div.classList.add("selected");
+          }
+          div.textContent = item.fruit ? FRUITS[item.color] : "";
+          div.onclick = () => onCellClick(r, c);
+          boardEl.appendChild(div);
+        }
+      }
+    }
+
+    async function onCellClick(r, c) {
+      if (isBusy) return;
+      if (lives <= 0) {
+        showToast("Hakkınız bitti! 5 saniye bekleyin veya Reklam/Mağaza kullanın.");
+        return;
+      }
+
+      if (!selectedCell) {
+        selectedCell = { r, c };
+        renderBoard();
+        return;
+      }
+
+      if (selectedCell.r === r && selectedCell.c === c) {
+        selectedCell = null;
+        renderBoard();
+        return;
+      }
+
+      const dr = Math.abs(selectedCell.r - r);
+      const dc = Math.abs(selectedCell.c - c);
+      if (dr + dc !== 1) {
+        selectedCell = { r, c };
+        renderBoard();
+        return;
+      }
+
+      const a = selectedCell;
+      const b = { r, c };
+      selectedCell = null;
+      await trySwap(a, b);
+    }
+
+    async function trySwap(a, b) {
+      isBusy = true;
+      const cellA = grid[a.r][a.c];
+      const cellB = grid[b.r][b.c];
+
+      // Check direct fruit + fruit merge
+      if (cellA.fruit && cellB.fruit && cellA.color === cellB.color) {
+        movesLeft--;
+        await triggerFruitMerge(a, b, cellA.color);
+        await applyGravityAndCascades();
+        await checkStageOutcome();
+        isBusy = false;
+        return;
+      }
+
+      // Swap
+      grid[a.r][a.c] = cellB;
+      grid[b.r][b.c] = cellA;
+      renderBoard();
+      await sleep(140);
+
+      const matches = findMatches();
+      if (matches.length === 0) {
+        // Revert swap
+        grid[a.r][a.c] = cellA;
+        grid[b.r][b.c] = cellB;
+        renderBoard();
+        isBusy = false;
+        return;
+      }
+
+      movesLeft--;
+      await resolveMatches(matches, b);
+      await applyGravityAndCascades();
+      await checkStageOutcome();
+      isBusy = false;
+    }
+
+    async function triggerFruitMerge(a, b, color) {
+      score += 100;
+      if (color === "green") {
+        // Two watermelons destroy the entire board!
+        showCallout("EXCELLENT! DEV KARPUZ!");
+        for (let r = 0; r < 8; r++) {
+          for (let c = 0; c < 8; c++) {
+            grid[r][c] = null;
+          }
+        }
+        score += 300;
+      } else {
+        showCallout("AMAZING! +100");
+        for (let r = 0; r < 8; r++) {
+          for (let c = 0; c < 8; c++) {
+            if (grid[r][c] && (grid[r][c].color === color || r === b.r || c === b.c)) {
+              grid[r][c] = null;
+            }
+          }
+        }
+      }
+      updateHUD();
+      renderBoardSafe();
+      await sleep(260);
+    }
+
+    function findMatches() {
+      const groups = [];
+      // Horizontal
+      for (let r = 0; r < 8; r++) {
+        let c = 0;
+        while (c < 8) {
+          const base = grid[r][c];
+          if (!base) { c++; continue; }
+          let end = c + 1;
+          while (end < 8 && grid[r][end] && grid[r][end].color === base.color) end++;
+          if (end - c >= 3) {
+            const cells = [];
+            for (let k = c; k < end; k++) cells.push({ r, c: k });
+            groups.push({ color: base.color, cells });
+          }
+          c = end;
+        }
+      }
+      // Vertical
+      for (let c = 0; c < 8; c++) {
+        let r = 0;
+        while (r < 8) {
+          const base = grid[r][c];
+          if (!base) { r++; continue; }
+          let end = r + 1;
+          while (end < 8 && grid[end][c] && grid[end][c].color === base.color) end++;
+          if (end - r >= 3) {
+            const cells = [];
+            for (let k = r; k < end; k++) cells.push({ r: k, c });
+            groups.push({ color: base.color, cells });
+          }
+          r = end;
+        }
+      }
+      return groups;
+    }
+
+    async function resolveMatches(groups, preferPos = null) {
+      const toClear = new Set();
+      const fruitsToSpawn = [];
+
+      for (const g of groups) {
+        score += 10;
+        const target = (preferPos && g.cells.some(p => p.r === preferPos.r && p.c === preferPos.c))
+          ? preferPos
+          : g.cells[Math.floor(g.cells.length / 2)];
+        fruitsToSpawn.push({ r: target.r, c: target.c, color: g.color });
+        for (const p of g.cells) {
+          toClear.add(`${p.r},${p.c}`);
+        }
+      }
+
+      for (const key of toClear) {
+        const [r, c] = key.split(",").map(Number);
+        if (grid[r][c]?.ice) {
+          grid[r][c].ice = false;
+        } else {
+          grid[r][c] = null;
+        }
+      }
+
+      for (const f of fruitsToSpawn) {
+        grid[f.r][f.c] = { color: f.color, fruit: true, ice: false };
+      }
+
+      updateHUD();
+      renderBoardSafe();
+      await sleep(180);
+    }
+
+    async function applyGravityAndCascades() {
+      let loopGuard = 0;
+      while (loopGuard++ < 15) {
+        for (let c = 0; c < 8; c++) {
+          let writeRow = 7;
+          for (let r = 7; r >= 0; r--) {
+            if (grid[r][c] !== null) {
+              grid[writeRow][c] = grid[r][c];
+              if (writeRow !== r) grid[r][c] = null;
+              writeRow--;
+            }
+          }
+          for (let r = writeRow; r >= 0; r--) {
+            const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+            grid[r][c] = { color, fruit: false, ice: false };
+          }
+        }
+        renderBoard();
+        await sleep(160);
+
+        const nextMatches = findMatches();
+        if (nextMatches.length === 0) break;
+        await resolveMatches(nextMatches);
+      }
+    }
+
+    function renderBoardSafe() {
+      const boardEl = document.getElementById("board");
+      boardEl.innerHTML = "";
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const item = grid[r][c];
+          const div = document.createElement("div");
+          if (!item) {
+            div.className = "cell";
+            div.style.background = "rgba(255,255,255,0.03)";
+          } else {
+            div.className = `cell c-${item.color}`;
+            if (item.fruit) div.classList.add("fruit");
+            if (item.ice) div.classList.add("ice");
+            div.textContent = item.fruit ? FRUITS[item.color] : "";
+          }
+          boardEl.appendChild(div);
+        }
+      }
+    }
+
+    async function checkStageOutcome() {
+      updateHUD();
+      await syncScoreToServer();
+
+      if (score >= targetScore) {
+        showCallout(`ETAP ${stage} TAMAM!`);
+        await sleep(800);
+        if (stage < MAX_STAGE) {
+          stage++;
+          if (sb && currentUser && !currentUser.isDemo) {
+            await sb.from("profiles").update({ current_stage: stage }).eq("id", currentUser.id);
+          }
+          setupStage(stage);
+        } else {
+          showToast("Tebrikler! 50 Etabın tamamını bitirdiniz!");
+          setupStage(1);
+        }
+        return;
+      }
+
+      if (movesLeft <= 0) {
+        const ok = await consumeOneLife();
+        showToast(ok ? "Hamle bitti! 1 hak düştü, etap yeniden başlıyor." : "Hakkınız kalmadı! 5 saniye bekleyin.");
+        await sleep(700);
+        setupStage(stage);
+      }
+    }
+
+    async function syncScoreToServer() {
+      if (!currentUser) return;
+      if (score > (currentUser.best_score || 0)) {
+        currentUser.best_score = score;
+        if (sb && !currentUser.isDemo) {
+          await sb.from("profiles").update({ best_score: score }).eq("id", currentUser.id);
+        }
+      }
+      if (activeChallenge && sb && !currentUser.isDemo) {
+        await sb.from("challenges").update({ challenger_score: score }).eq("id", activeChallenge.id);
+      }
+    }
+
+    // LEADERBOARD & CHALLENGE
+    async function refreshLeaderboard() {
+      const listEl = document.getElementById("leaderboard-list");
+      let rows = [
+        { id: "bot-1", username: "EgeKral35", best_score: 48200, current_stage: 12 },
+        { id: "bot-2", username: "ZeynepNeon", best_score: 36900, current_stage: 9 },
+        { id: "bot-3", username: "MertCan_TR", best_score: 21400, current_stage: 6 }
+      ];
+
+      if (sb) {
+        const { data } = await sb
+          .from("profiles")
+          .select("id, username, best_score, current_stage")
+          .order("best_score", { ascending: false })
+          .limit(15);
+        if (data && data.length > 0) {
+          rows = [...data, ...rows];
+        }
+      }
+
+      if (currentUser && !rows.some(r => r.username === currentUser.username)) {
+        rows.push({
+          id: currentUser.id,
+          username: currentUser.username,
+          best_score: currentUser.best_score || score,
+          current_stage: stage
+        });
+      }
+      rows.sort((a, b) => (b.best_score || 0) - (a.best_score || 0));
+
+      listEl.innerHTML = rows.map((p, idx) => {
+        const isMe = currentUser && p.username === currentUser.username;
+        return `
+          <div class="list-row">
+            <div>
+              <strong>#${idx + 1} ${p.username}</strong> ${isMe ? "(Sen)" : ""}<br/>
+              <span style="font-size:11px;color:var(--text-muted);">Etap ${p.current_stage || 1} • ${(p.best_score || 0).toLocaleString("tr-TR")} Puan</span>
+            </div>
+            ${isMe ? "" : `<button class="chip-btn pink" onclick="startChallenge('${p.id}', '${p.username}')">⚔️ Meydan Oku</button>`}
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function addFriend() {
+      const input = document.getElementById("friend-search-input");
+      const name = input.value.trim();
+      if (!name) return;
+      if (!sb || currentUser?.isDemo) {
+        showToast(`${name} arkadaş listesine eklendi!`);
+        input.value = "";
+        return;
+      }
+      const { data: target } = await sb.from("profiles").select("id, username").ilike("username", name).maybeSingle();
+      if (!target) {
+        showToast("Bu kullanıcı adına sahip oyuncu bulunamadı.");
+        return;
+      }
+      await sb.from("friendships").insert({ user_id: currentUser.id, friend_id: target.id });
+      showToast(`${target.username} arkadaş olarak eklendi!`);
+      input.value = "";
+      refreshLeaderboard();
+    }
+
+    async function startChallenge(oppId, oppName) {
+      closeModal("modal-rank");
+      activeChallenge = { id: null, opponentName: oppName, oppScore: 0, seconds: 60 };
+
+      if (sb && currentUser && !currentUser.isDemo && !oppId.startsWith("bot-")) {
+        const { data } = await sb.from("challenges").insert({
+          challenger_id: currentUser.id,
+          opponent_id: oppId,
+          stage
+        }).select().single();
+        if (data) activeChallenge.id = data.id;
+      }
+
+      document.getElementById("ch-opponent-name").textContent = oppName;
+      document.getElementById("ch-opp-score").textContent = "0";
+      document.getElementById("ch-timer").textContent = "60";
+      document.getElementById("challenge-banner").style.display = "flex";
+      showToast(`${oppName} ile 60 saniyelik düello başladı!`);
+
+      clearInterval(challengeTimerInt);
+      challengeTimerInt = setInterval(() => {
+        activeChallenge.seconds--;
+        activeChallenge.oppScore += Math.floor(Math.random() * 140);
+        document.getElementById("ch-opp-score").textContent = activeChallenge.oppScore.toLocaleString("tr-TR");
+        document.getElementById("ch-timer").textContent = activeChallenge.seconds;
+        if (activeChallenge.seconds <= 0) {
+          clearInterval(challengeTimerInt);
+          document.getElementById("challenge-banner").style.display = "none";
+          const won = score >= activeChallenge.oppScore;
+          showToast(won ? `🏆 Düelloyu Kazandın! (${score} - ${activeChallenge.oppScore})` : `Düello Bitti! Rakip: ${activeChallenge.oppScore}`);
+          activeChallenge = null;
+        }
+      }, 1000);
+    }
+
+    // INVITE CODE
+    function copyInviteCode() {
+      const code = document.getElementById("my-invite-code").textContent;
+      navigator.clipboard?.writeText(code);
+      showToast(`Davet kodu kopyalandı: ${code}`);
+    }
+
+    async function redeemInviteCode() {
+      const code = document.getElementById("invite-code-input").value.trim();
+      if (!code) return;
+      if (!sb || currentUser?.isDemo) {
+        lives = Math.min(MAX_LIVES, lives + 2);
+        updateHeartsUI();
+        showToast("Davet doğrulandı! +2 hak eklendi.");
+        closeModal("modal-invite");
+        return;
+      }
+      const { data, error } = await sb.rpc("claim_invite_code", {
+        p_invitee_id: currentUser.id,
+        p_code: code,
+        p_device_id: navigator.userAgent.slice(0, 64)
+      });
+      if (error || !data?.ok) {
+        showToast(data?.message || "Davet kodu doğrulanamadı.");
+        return;
+      }
+      lives = data.lives;
+      updateHeartsUI();
+      showToast(data.message);
+      closeModal("modal-invite");
+    }
+
+    // REWARDED AD (5 SEC)
+    let adTimerInt = null;
+    function openAdModal() {
+      openModal("modal-ad");
+      const btn = document.getElementById("ad-claim-btn");
+      const txt = document.getElementById("ad-status-text");
+      if (currentUser?.is_vip) {
+        btn.disabled = false;
+        btn.textContent = "VIP: Anında +1 Hak Al";
+        txt.textContent = "VIP üyeliğiniz sayesinde reklam beklemeden hakkınızı alabilirsiniz.";
+        return;
+      }
+      let sec = 5;
+      btn.disabled = true;
+      btn.textContent = `Lütfen Bekleyin (${sec}s)`;
+      txt.innerHTML = `Reklam izleniyor... Ödül için <strong>${sec}</strong> saniye bekleyin.`;
+      clearInterval(adTimerInt);
+      adTimerInt = setInterval(() => {
+        sec--;
+        if (sec <= 0) {
+          clearInterval(adTimerInt);
+          btn.disabled = false;
+          btn.textContent = "🎁 +1 Hak Ödülünü Al";
+          txt.textContent = "Reklam tamamlandı! Hakkınızı alabilirsiniz.";
+        } else {
+          btn.textContent = `Lütfen Bekleyin (${sec}s)`;
+          txt.innerHTML = `Reklam izleniyor... Ödül için <strong>${sec}</strong> saniye bekleyin.`;
+        }
+      }, 1000);
+    }
+
+    async function claimAdReward() {
+      lives = Math.min(MAX_LIVES, lives + 1);
+      updateHeartsUI();
+      if (sb && currentUser && !currentUser.isDemo) {
+        await sb.from("profiles").update({ lives }).eq("id", currentUser.id);
+      }
+      closeModal("modal-ad");
+      showToast("+1 Hak hesabınıza eklendi!");
+    }
+
+    // SHOP
+    async function buyProduct(sku) {
+      if (sku === "lives_5") {
+        lives = MAX_LIVES;
+        regenCountdown = 0;
+        updateHeartsUI();
+        if (sb && currentUser && !currentUser.isDemo) {
+          await sb.from("profiles").update({ lives: MAX_LIVES }).eq("id", currentUser.id);
+        }
+        showToast("5 Hak paketiniz tanımlandı!");
+      } else if (sku === "vip_monthly") {
+        if (currentUser) currentUser.is_vip = true;
+        document.getElementById("ui-vip-badge").style.display = "inline-block";
+        if (sb && currentUser && !currentUser.isDemo) {
+          await sb.from("profiles").update({ is_vip: true }).eq("id", currentUser.id);
+        }
+        showToast("👑 Reklamsız VIP Üyelik aktif edildi!");
+      }
+      closeModal("modal-shop");
+    }
+
+    function openModal(id) {
+      if (id === "modal-rank") refreshLeaderboard();
+      document.getElementById(id).classList.add("open");
+    }
+    function closeModal(id) {
+      document.getElementById(id).classList.remove("open");
+    }
+    function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+  </script>
+</body>
+</html>
