@@ -25,21 +25,26 @@ jobs:
           distribution: "temurin"
           java-version: "17"
 
-      - name: Prepare Android SDK
+            - name: Prepare Android SDK
         run: |
           export ANDROID_HOME=${ANDROID_HOME:-$HOME/Android/Sdk}
-          mkdir -p "$ANDROID_HOME"
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
-          if ! command -v sdkmanager >/dev/null 2>&1; then
-            mkdir -p "$ANDROID_HOME/cmdline-tools"
+
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            rm -rf "$ANDROID_HOME/cmdline-tools/latest"
             curl -fsSL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
-            unzip -q cmdline-tools.zip -d "$ANDROID_HOME/cmdline-tools"
-            mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
-            rm cmdline-tools.zip
+            unzip -q cmdline-tools.zip -d "$ANDROID_HOME/cmdline-tools-tmp"
+            mkdir -p "$ANDROID_HOME/cmdline-tools/latest"
+            mv "$ANDROID_HOME/cmdline-tools-tmp/cmdline-tools/"* "$ANDROID_HOME/cmdline-tools/latest/"
+            rm -rf cmdline-tools.zip "$ANDROID_HOME/cmdline-tools-tmp"
           fi
-          yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
-          sdkmanager --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
+          yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
 
       - name: Prepare web assets
         run: |
